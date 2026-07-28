@@ -41,10 +41,12 @@ public class ComponentScopeCelPolicyTest extends PersistenceCapableTest {
                 new Object[]{PolicyCondition.Operator.IS, "REQUIRED", "OPTIONAL", false},
                 // IS_NOT with no match
                 new Object[]{PolicyCondition.Operator.IS_NOT, "EXCLUDED", "OPTIONAL", true},
+                new Object[]{PolicyCondition.Operator.IS, "REQUIRED", null, false},
+                new Object[]{PolicyCondition.Operator.IS, "UNASSIGNED", null, true},
                 // IS_NOT with exact match
-//                new Object[]{PolicyCondition.Operator.IS_NOT, "UNRESOLVED", "UNRESOLVED", false},
+//                new Object[]{PolicyCondition.Operator.IS_NOT, "UNASSIGNED", "UNRESOLVED", false},
                 // IS with quotes (actualSeverity can't have quotes because it's an enum)
-//                new Object[]{PolicyCondition.Operator.IS, "\"REQUIRED", "REQUIRED", false}
+                new Object[]{PolicyCondition.Operator.IS, "\"REQUIRED", "REQUIRED", false}
         };
     }
 
@@ -61,7 +63,7 @@ public class ComponentScopeCelPolicyTest extends PersistenceCapableTest {
         final var component = new Component();
         component.setProject(project);
         component.setName("acme-lib");
-        component.setScope(Scope.valueOf(actualScope));
+        component.setScope(actualScope == null ? null : Scope.valueOf(actualScope));
         qm.persist(component);
 
         new CelPolicyEngine().evaluateProject(project.getUuid());

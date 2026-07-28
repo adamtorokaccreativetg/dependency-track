@@ -31,15 +31,18 @@ public class ComponentScopeCelPolicyScriptSourceBuilder implements CelPolicyScri
 
     @Override
     public String apply(final PolicyCondition policyCondition) {
-        final Scope scope = extractScope(policyCondition);
+        final Scope scope;
+
+        try {
+            scope = extractScope(policyCondition);
+        } catch (IllegalArgumentException exception) {
+            LOGGER.warn("Policy value %s is not supported for this subject".formatted(policyCondition.getValue()));
+            return null;
+        }
 
         return switch (policyCondition.getOperator()) {
-            case IS -> """
-                    component.scope == "%s"
-                    """.formatted(escapeQuotes(scope.toString()));
-            case IS_NOT -> """
-                    component.scope != "%s"
-                    """.formatted(escapeQuotes(scope.toString()));
+            case IS -> formatIsOperator(scope);
+            case IS_NOT -> formatIsNotOperator(scope);
             default -> {
                 LOGGER.warn("Policy operator %s is not supported for this subject".formatted(policyCondition.getOperator()));
                 yield null;
@@ -48,6 +51,28 @@ public class ComponentScopeCelPolicyScriptSourceBuilder implements CelPolicyScri
     }
 
     private static Scope extractScope(PolicyCondition condition) {
-        return Scope.valueOf(condition.getValue());
+        final String value = condition.getValue().toUpperCase();
+
+        if (value.equals("UNASSIGNED")) {
+            return null;
+        }
+
+        return Scope.valueOf(value);
+    }
+
+    private static String formatIsOperator(Scope scope) {
+        return scope == null
+                ? "!has(component.scope)"
+                : """
+                    component.scope == "%s"
+                    """.formatted(escapeQuotes(scope.toString()));
+    }
+
+    private static String formatIsNotOperator(Scope scope) {
+        return scope == null
+                ? "has(component.scope)"
+                : """
+                    component.scope != "%s"
+                    """.formatted(escapeQuotes(scope.toString()));
     }
 }
